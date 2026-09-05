@@ -3,8 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="SahiBhaav connects farmers directly with verified bulk buyers, shows real Agmarknet mandi prices, and features AI price prediction.">
+<meta name="theme-color" content="#1f3326">
 <title>SahiBhaav — Sell straight to the buyer</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath d='M20 4C13 10 9 17 9 23a11 11 0 0022 0c0-6-4-13-11-19z' fill='%234c7a44'/%3E%3Cpath d='M20 12v22' stroke='%23e6a419' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=Work+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -13,7 +17,7 @@
 <!-- NAV -->
 <nav class="nav">
   <div class="wrap">
-    <a href="#" class="brand">
+    <a href="#" class="brand" aria-label="SahiBhaav Home">
       <svg class="mark" viewBox="0 0 40 40" fill="none"><path d="M20 4C13 10 9 17 9 23a11 11 0 0022 0c0-6-4-13-11-19z" fill="#4c7a44"/><path d="M20 12v22" stroke="#e6a419" stroke-width="2" stroke-linecap="round"/></svg>
       SahiBhaav
     </a>
@@ -23,7 +27,19 @@
       <a href="#sell">For farmers</a>
       <a href="#about">About</a>
     </div>
-    <a href="#sell" class="btn btn-primary">List your produce</a>
+    <div class="nav-actions">
+      <a href="#sell" class="btn btn-primary">List your produce</a>
+      <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation menu" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="nav-mobile hidden" id="nav-mobile">
+    <a href="#how">How it works</a>
+    <a href="#buy">For buyers</a>
+    <a href="#sell">For farmers</a>
+    <a href="#about">About</a>
+    <a href="#sell" class="btn btn-primary" style="margin-top:8px; text-align:center; justify-content:center;">List your produce</a>
   </div>
 </nav>
 
@@ -87,6 +103,38 @@
       <h2>Browse today's listings</h2>
       <p>Every listing shows the farmer's asking price next to the live mandi rate, so you know it's fair before you bid.</p>
     </div>
+
+    <!-- Marketplace Filter & Search Toolbar -->
+    <div class="marketplace-toolbar">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="search-icon"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35" stroke-linecap="round"/></svg>
+        <input type="text" id="listing-search" placeholder="Search by crop, city, or state..." aria-label="Search listings">
+      </div>
+      <div class="filter-group">
+        <div class="crop-chips" id="crop-chips" role="group" aria-label="Filter by crop">
+          <button type="button" class="chip active" data-crop="all">All</button>
+          <button type="button" class="chip" data-crop="tomato">Tomato</button>
+          <button type="button" class="chip" data-crop="onion">Onion</button>
+          <button type="button" class="chip" data-crop="wheat">Wheat</button>
+          <button type="button" class="chip" data-crop="potato">Potato</button>
+        </div>
+        <div class="sort-box">
+          <label for="sort-select" class="sr-only">Sort by</label>
+          <select id="sort-select" aria-label="Sort listings">
+            <option value="default">Sort: Featured</option>
+            <option value="price-asc">Price: Low to High</option>
+            <option value="price-desc">Price: High to Low</option>
+            <option value="qty-desc">Quantity: High to Low</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="toolbar-meta">
+      <span id="listing-count-text">Showing 6 listings</span>
+      <button type="button" id="reset-filters" class="link-btn hidden">Reset filters</button>
+    </div>
+
     <div class="listing-grid" id="listing-grid"></div>
   </div>
 </section>
@@ -113,44 +161,101 @@
       </div>
       <div class="farmer-form">
 
+        <!-- Farmer Auth Status -->
+        <div id="farmer-auth-status" class="auth-status-bar hidden">
+          <div class="auth-user">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="auth-icon"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span>Verified Farmer: <strong id="farmer-phone-display">+91 98765 43210</strong></span>
+          </div>
+          <button type="button" class="btn-text-light" id="logout-farmer">Switch number</button>
+        </div>
+
         <div id="otp-stage">
           <div class="field">
-            <label for="phone">Phone number</label>
-            <input type="tel" id="phone" placeholder="98765 43210" maxlength="10">
+            <div class="field-header">
+              <label for="phone">Phone number</label>
+              <button type="button" class="quick-fill-btn" id="demo-phone-btn">Use demo phone</button>
+            </div>
+            <input type="tel" id="phone" placeholder="98765 43210" maxlength="14" inputmode="numeric" autocomplete="tel">
           </div>
-          <button class="btn btn-primary" id="send-otp">Send OTP</button>
-          <p class="hint hidden" id="otp-hint">Demo OTP sent: <strong>4821</strong></p>
+          <button type="button" class="btn btn-primary" id="send-otp">Send OTP</button>
+          
+          <div class="hint hidden" id="otp-hint">
+            <span>Demo OTP sent: <strong>4821</strong></span>
+            <button type="button" class="quick-fill-btn" id="autofill-otp-btn">Auto-fill 4821</button>
+          </div>
 
           <div class="field hidden" id="otp-field" style="margin-top:16px;">
-            <label for="otp">Enter OTP</label>
+            <label for="otp">Enter 4-digit OTP</label>
             <div class="otp-row">
-              <input type="text" id="otp" maxlength="4" placeholder="4 digit code">
-              <button class="btn btn-marigold" id="verify-otp">Verify</button>
+              <input type="text" id="otp" maxlength="4" placeholder="4821" inputmode="numeric" autocomplete="one-time-code">
+              <button type="button" class="btn btn-marigold" id="verify-otp">Verify</button>
             </div>
           </div>
         </div>
 
         <form id="listing-form" class="hidden">
           <div class="field">
-            <label for="crop">Crop</label>
-            <input type="text" id="crop" placeholder="e.g. Tomato" required>
+            <label for="crop">Crop name</label>
+            <input type="text" id="crop" placeholder="e.g. Tomato, Wheat, Onion, Rice" list="crop-suggestions" required>
+            <datalist id="crop-suggestions">
+              <option value="Tomato">
+              <option value="Onion">
+              <option value="Wheat">
+              <option value="Potato">
+              <option value="Rice">
+              <option value="Mustard">
+              <option value="Cotton">
+              <option value="Maize">
+            </datalist>
           </div>
-          <div class="field">
-            <label for="qty">Quantity (in quintals)</label>
-            <input type="number" id="qty" placeholder="e.g. 20" required>
+          <div class="grid-2-col">
+            <div class="field">
+              <label for="qty">Quantity (quintals)</label>
+              <input type="number" id="qty" placeholder="e.g. 20" min="1" step="1" required>
+            </div>
+            <div class="field">
+              <label for="price">Asking price (₹ / qtl)</label>
+              <input type="number" id="price" placeholder="e.g. 1800" min="10" step="1" required>
+            </div>
           </div>
-          <div class="field">
-            <label for="price">Your asking price (₹ per quintal)</label>
-            <input type="number" id="price" placeholder="e.g. 1800" required>
-          </div>
-          <div class="field">
-            <label for="location">Mandi / location</label>
-            <input type="text" id="location" placeholder="e.g. Baheri, Uttar Pradesh" required>
+          <div class="grid-2-col">
+            <div class="field">
+              <label for="location">Mandi / City</label>
+              <input type="text" id="location" placeholder="e.g. Baheri Mandi" required>
+            </div>
+            <div class="field">
+              <label for="state">State</label>
+              <select id="state" required>
+                <option value="Uttar Pradesh">Uttar Pradesh</option>
+                <option value="Maharashtra">Maharashtra</option>
+                <option value="Haryana">Haryana</option>
+                <option value="Punjab">Punjab</option>
+                <option value="Madhya Pradesh">Madhya Pradesh</option>
+                <option value="Rajasthan">Rajasthan</option>
+                <option value="Karnataka">Karnataka</option>
+                <option value="Gujarat">Gujarat</option>
+                <option value="Bihar">Bihar</option>
+                <option value="West Bengal">West Bengal</option>
+              </select>
+            </div>
           </div>
           <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">List produce</button>
         </form>
 
-        <div class="success-box hidden" id="listing-success"></div>
+        <div class="success-box hidden" id="listing-success">
+          <div id="listing-success-text"></div>
+          <div class="success-actions">
+            <a href="#buy" class="btn btn-marigold btn-sm" id="view-listing-link">View in marketplace</a>
+            <button type="button" class="btn btn-ghost-light btn-sm" id="list-another-btn">List another crop</button>
+          </div>
+        </div>
+
+        <!-- Incoming Bids on Farmer's Produce -->
+        <div class="farmer-bids-section hidden" id="farmer-bids-section">
+          <h4>Live bids on your produce</h4>
+          <div id="farmer-bids-list"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -219,12 +324,30 @@
         <span class="tag" style="color:var(--leaf-deep); font-weight:600; display:block; margin-bottom:10px;">Built with</span>
         <h2 style="margin:0 0 14px; font-size:1.8rem;">Tech stack</h2>
         <div class="tech-list">
-          <div class="tech-item">React &amp; Tailwind CSS</div>
-          <div class="tech-item">Python FastAPI</div>
-          <div class="tech-item">PostgreSQL</div>
-          <div class="tech-item">Agmarknet API</div>
-          <div class="tech-item">Twilio (WhatsApp/SMS)</div>
-          <div class="tech-item">Scikit-learn</div>
+          <div class="tech-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(30 12 12)"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(-30 12 12)"/><circle cx="12" cy="12" r="2" fill="currentColor"/></svg>
+            React &amp; Tailwind CSS
+          </div>
+          <div class="tech-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            Python FastAPI
+          </div>
+          <div class="tech-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6c0 1.66 3.58 3 8 3s8-1.34 8-3-3.58-3-8-3-8 1.34-8 3z"/><path d="M4 6v6c0 1.66 3.58 3 8 3s8-1.34 8-3V6"/><path d="M4 12v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6"/></svg>
+            PostgreSQL
+          </div>
+          <div class="tech-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18"/><path d="M7 16l4-8 4 5 5-9"/></svg>
+            Agmarknet API
+          </div>
+          <div class="tech-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+            Twilio (WhatsApp/SMS)
+          </div>
+          <div class="tech-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><circle cx="19" cy="6" r="2"/><circle cx="5" cy="6" r="2"/><circle cx="19" cy="18" r="2"/><circle cx="5" cy="18" r="2"/><path d="M12 9V6M12 15v3M9.5 10.5L6.5 7.5M14.5 10.5l3-3M9.5 13.5l-3 3M14.5 13.5l3 3"/></svg>
+            Scikit-learn
+          </div>
         </div>
       </div>
     </div>
@@ -244,6 +367,64 @@
     </div>
   </div>
 </footer>
+
+<!-- BID MODAL -->
+<div class="modal-backdrop hidden" id="bid-modal" role="dialog" aria-modal="true" aria-labelledby="modal-crop-title">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div>
+        <span class="tag" style="color:var(--marigold-deep); font-size:0.78rem; font-weight:600;">Transparent Bulk Bidding</span>
+        <h3 id="modal-crop-title">Place a bid on Tomato</h3>
+      </div>
+      <button type="button" class="modal-close" id="modal-close" aria-label="Close dialog">&times;</button>
+    </div>
+
+    <div class="modal-info-box">
+      <div class="info-row">
+        <span>Location / Mandi:</span>
+        <strong id="modal-crop-loc">Baheri, UP</strong>
+      </div>
+      <div class="info-row">
+        <span>Available lot:</span>
+        <strong id="modal-crop-qty">20 quintals</strong>
+      </div>
+      <div class="info-row">
+        <span>Farmer asking price:</span>
+        <strong id="modal-crop-asking">₹1,700 / qtl</strong>
+      </div>
+      <div class="info-row">
+        <span>Mandi benchmark:</span>
+        <strong id="modal-crop-market">₹1,650 / qtl</strong>
+      </div>
+    </div>
+
+    <form id="bid-form">
+      <input type="hidden" id="bid-listing-id">
+      <div class="field">
+        <label for="bidder-name">Your name or firm</label>
+        <input type="text" id="bidder-name" placeholder="e.g. Kisan Mandi Traders / Ramesh Kumar" required>
+      </div>
+      <div class="field">
+        <label for="bidder-phone">WhatsApp / Phone number</label>
+        <input type="tel" id="bidder-phone" placeholder="98765 43210" maxlength="14" inputmode="numeric" required>
+      </div>
+      <div class="grid-2-col">
+        <div class="field">
+          <label for="bid-amount">Your bid (₹ / quintal)</label>
+          <input type="number" id="bid-amount" min="10" step="1" required>
+        </div>
+        <div class="field">
+          <label for="bid-qty">Quantity needed (qtl)</label>
+          <input type="number" id="bid-qty" min="1" step="1" required>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="modal-cancel">Cancel</button>
+        <button type="submit" class="btn btn-marigold">Submit transparent bid</button>
+      </div>
+    </form>
+  </div>
+</div>
 
 <div class="toast" id="toast">
   <svg viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4L19 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
