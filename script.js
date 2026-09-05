@@ -158,12 +158,74 @@ async function loadLiveMandiData(){
   renderListings(liveListings);
 }
  
+// ---------- AI predicted price (real trend from Agmarknet history) ----------
+const AI_PREDICTION_COMMODITY = "Tomato";
+const AI_PREDICTION_STATE = AGMARKNET_TICKER_STATE; // Uttar Pradesh, matches the card's label
+ 
+async function fetchPriceHistory(commodity, state){
+  const url = `https://api.data.gov.in/resource/${AGMARKNET_RESOURCE_ID}` +
+              `?api-key=${AGMARKNET_API_KEY}&format=json` +
+              `&filters[Commodity]=${encodeURIComponent(commodity)}` +
+              `&filters[State]=${encodeURIComponent(state)}` +
+              `&limit=100`;
+ 
+  const res = await fetch(url);
+  if(!res.ok) throw new Error('History fetch failed');
+  const data = await res.json();
+  if(!data.records || data.records.length === 0) throw new Error('No history records');
+ 
+  const points = data.records
+    .map(r => ({ date: parseDate(r.Arrival_Date), price: Number(r.Modal_Price) }))
+    .filter(p => p.date && !isNaN(p.price))
+    .sort((a, b) => a.date - b.date);
+ 
+  return points;
+}
+ 
+// Uses a simple average-daily-change trend over the most recent data points
+// (not a trained model — a transparent, explainable estimate).
+function predictNextWeek(points){
+  if(points.length < 2) throw new Error('Not enough data points to trend');
+ 
+  const recent = points.slice(-15); // most recent up to 15 dated entries
+  const first = recent[0];
+  const last = recent[recent.length - 1];
+ 
+  const dayDiff = Math.max(1, Math.round((last.date - first.date) / (1000 * 60 * 60 * 24)));
+  const ratePerDay = (last.price - first.price) / dayDiff;
+  const predicted = Math.round(last.price + ratePerDay * 7);
+ 
+  const percent = (((predicted - last.price) / last.price) * 100).toFixed(1);
+  const dir = predicted >= last.price ? 'up' : 'down';
+ 
+  return { today: last.price, predicted, percent, dir };
+}
+ 
+async function loadAiPrediction(){
+  try{
+    const points = await fetchPriceHistory(AI_PREDICTION_COMMODITY, AI_PREDICTION_STATE);
+    const result = predictNextWeek(points);
+ 
+    document.getElementById('ai-today-value').textContent = `₹${result.today.toLocaleString('en-IN')}`;
+    document.getElementById('ai-predicted-value').textContent = `₹${result.predicted.toLocaleString('en-IN')}`;
+ 
+    const arrow = result.dir === 'up' ? '↑' : '↓';
+    const word = result.dir === 'up' ? 'rise' : 'fall';
+    document.getElementById('ai-delta').textContent = `${arrow} ${Math.abs(result.percent)}% expected ${word}`;
+ 
+  } catch(err){
+    console.warn('AI prediction fetch failed, keeping static fallback numbers:', err);
+    // The hardcoded values already in the HTML act as the fallback — nothing else to do.
+  }
+}
+ 
 // ---------- Initial render (instant, uses fallback so the page never looks empty) ----------
 renderTicker(fallbackTicker, false);
 renderListings(listings);
  
-// ---------- Then attempt to upgrade to live, per-state data ----------
+// ---------- Then attempt to upgrade to live data ----------
 loadLiveMandiData();
+loadAiPrediction();
  
 // ---------- Toast ----------
 function showToast(text){
