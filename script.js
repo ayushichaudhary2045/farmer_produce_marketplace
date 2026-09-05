@@ -1,11 +1,11 @@
-// ============ SahiBhaav — live Agmarknet integration ============
+// ============ SahiBhaav — live Agmarknet integration (per-listing state) ============
 // NOTE: This API key is from the free, public data.gov.in catalog (Agmarknet dataset).
 // For a production app, this call should go through your own backend so the key
 // isn't exposed in client-side code. Fine for a hackathon demo/prototype.
  
 const AGMARKNET_API_KEY = "579b464db66ec23bdd000001d5f2cc335738412a6b00dec51";
 const AGMARKNET_RESOURCE_ID = "35985678-0d79-46b4-9ed6-6f13308a1d24";
-const AGMARKNET_STATE = "Uttar Pradesh"; // change this to match your team's/demo region
+const AGMARKNET_TICKER_STATE = "Uttar Pradesh"; // default state shown in the hero ticker
  
 const icons = {
   tomato: `<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="14" r="7" fill="#bd4130"/><path d="M9 8c1-2 5-2 6 0" stroke="#4c7a44" stroke-width="2" stroke-linecap="round"/></svg>`,
@@ -14,8 +14,7 @@ const icons = {
   potato: `<svg viewBox="0 0 24 24" fill="none"><ellipse cx="12" cy="13" rx="7" ry="6" fill="#b76e44"/></svg>`
 };
  
-// Fallback data — used instantly on load, and again if the live API fails or is slow.
-// This is the same "local caching" fallback strategy described in the feasibility slide.
+// Fallback data — rendered instantly, and again per-item if a live fetch fails.
 const fallbackTicker = [
   { crop:"Tomato", icon:"tomato", price:1650, dir:"up" },
   { crop:"Onion", icon:"onion", price:1420, dir:"down" },
@@ -23,13 +22,15 @@ const fallbackTicker = [
   { crop:"Potato", icon:"potato", price:980, dir:"down" },
 ];
  
+// Each listing now carries its own real state name (must match Agmarknet's "State" field values)
+// so the live market price fetched matches where that produce actually is.
 const listings = [
-  { crop:"Tomato", icon:"tomato", qty:"20 quintals", loc:"Baheri, UP", asking:1700, market:1650 },
-  { crop:"Onion", icon:"onion", qty:"35 quintals", loc:"Nashik, MH", asking:1380, market:1420 },
-  { crop:"Wheat", icon:"wheat", qty:"50 quintals", loc:"Karnal, HR", asking:2250, market:2210 },
-  { crop:"Potato", icon:"potato", qty:"40 quintals", loc:"Agra, UP", asking:1020, market:980 },
-  { crop:"Tomato", icon:"tomato", qty:"12 quintals", loc:"Kolar, KA", asking:1600, market:1650 },
-  { crop:"Wheat", icon:"wheat", qty:"28 quintals", loc:"Bathinda, PB", asking:2180, market:2210 },
+  { crop:"Tomato", icon:"tomato", qty:"20 quintals", loc:"Baheri, UP", state:"Uttar Pradesh", asking:1700, market:1650 },
+  { crop:"Onion", icon:"onion", qty:"35 quintals", loc:"Nashik, MH", state:"Maharashtra", asking:1380, market:1420 },
+  { crop:"Wheat", icon:"wheat", qty:"50 quintals", loc:"Karnal, HR", state:"Haryana", asking:2250, market:2210 },
+  { crop:"Potato", icon:"potato", qty:"40 quintals", loc:"Agra, UP", state:"Uttar Pradesh", asking:1020, market:980 },
+  { crop:"Tomato", icon:"tomato", qty:"12 quintals", loc:"Kolar, KA", state:"Karnataka", asking:1600, market:1650 },
+  { crop:"Wheat", icon:"wheat", qty:"28 quintals", loc:"Bathinda, PB", state:"Punjab", asking:2180, market:2210 },
 ];
  
 // ---------- Render functions ----------
@@ -70,26 +71,25 @@ function renderListings(data){
   `).join('');
 }
  
-// ---------- Live Agmarknet fetch ----------
-async function fetchCommodityPrice(commodity){
+// ---------- Live Agmarknet fetch (commodity + state specific) ----------
+async function fetchCommodityPrice(commodity, state){
   const url = `https://api.data.gov.in/resource/${AGMARKNET_RESOURCE_ID}` +
               `?api-key=${AGMARKNET_API_KEY}&format=json` +
               `&filters[Commodity]=${encodeURIComponent(commodity)}` +
-              `&filters[State]=${encodeURIComponent(AGMARKNET_STATE)}` +
+              `&filters[State]=${encodeURIComponent(state)}` +
               `&limit=50`;
  
   const res = await fetch(url);
-  if(!res.ok) throw new Error('Agmarknet request failed');
+  if(!res.ok) throw new Error(`Agmarknet request failed for ${commodity}/${state}`);
   const data = await res.json();
-  if(!data.records || data.records.length === 0) throw new Error('No records for ' + commodity);
+  if(!data.records || data.records.length === 0) throw new Error(`No records for ${commodity}/${state}`);
  
-  // Parse dd/mm/yyyy and sort newest first
   const parsed = data.records
     .map(r => ({ ...r, _date: parseDate(r.Arrival_Date) }))
     .filter(r => r._date && !isNaN(r.Modal_Price))
     .sort((a, b) => b._date - a._date);
  
-  if(parsed.length === 0) throw new Error('No usable records for ' + commodity);
+  if(parsed.length === 0) throw new Error(`No usable records for ${commodity}/${state}`);
  
   const latest = parsed[0];
   const prev = parsed.find(r => Number(r.Modal_Price) !== Number(latest.Modal_Price)) || latest;
@@ -107,42 +107,62 @@ function parseDate(str){
 }
  
 async function loadLiveMandiData(){
-  const crops = [
+  // ---- Ticker: 4 crops, single default state ----
+  const tickerCrops = [
     { crop:"Tomato", icon:"tomato" },
     { crop:"Onion", icon:"onion" },
     { crop:"Wheat", icon:"wheat" },
     { crop:"Potato", icon:"potato" },
   ];
  
-  try{
-    const results = await Promise.all(
-      crops.map(c => fetchCommodityPrice(c.crop).then(r => ({ ...c, ...r })))
-    );
+  const tickerResults = await Promise.allSettled(
+    tickerCrops.map(c => fetchCommodityPrice(c.crop, AGMARKNET_TICKER_STATE))
+  );
  
-    // Only treat as "live" if we actually got at least one real result
-    const liveTicker = results.map(r => ({ crop:r.crop, icon:r.icon, price:r.price, dir:r.dir }));
-    renderTicker(liveTicker, true);
+  const liveTicker = tickerCrops.map((c, i) => {
+    const r = tickerResults[i];
+    if(r.status === 'fulfilled'){
+      return { crop:c.crop, icon:c.icon, price:r.value.price, dir:r.value.dir };
+    }
+    return fallbackTicker.find(f => f.crop === c.crop);
+  });
+  const anyTickerLive = tickerResults.some(r => r.status === 'fulfilled');
+  renderTicker(liveTicker, anyTickerLive);
  
-    // Update the market price shown on buyer listings using live data where available
-    const priceMap = {};
-    results.forEach(r => { priceMap[r.crop] = r.price; });
-    const liveListings = listings.map(l => ({
+  // ---- Listings: each fetched using its OWN state, so Nashik shows Maharashtra's
+  // price, Karnal shows Haryana's price, etc. — not a single blanket state. ----
+  const comboKeys = [...new Set(listings.map(l => `${l.crop}|${l.state}`))];
+ 
+  const comboResults = await Promise.allSettled(
+    comboKeys.map(key => {
+      const [crop, state] = key.split('|');
+      return fetchCommodityPrice(crop, state);
+    })
+  );
+ 
+  const priceMap = {};
+  comboKeys.forEach((key, i) => {
+    if(comboResults[i].status === 'fulfilled'){
+      priceMap[key] = comboResults[i].value.price;
+    }
+  });
+ 
+  const liveListings = listings.map(l => {
+    const key = `${l.crop}|${l.state}`;
+    return {
       ...l,
-      market: priceMap[l.crop] !== undefined ? priceMap[l.crop] : l.market
-    }));
-    renderListings(liveListings);
+      market: priceMap[key] !== undefined ? priceMap[key] : l.market
+    };
+  });
  
-  } catch(err){
-    console.warn('Live Agmarknet fetch failed, using cached fallback data:', err);
-    // Fallback already rendered on initial load — nothing else to do
-  }
+  renderListings(liveListings);
 }
  
 // ---------- Initial render (instant, uses fallback so the page never looks empty) ----------
 renderTicker(fallbackTicker, false);
 renderListings(listings);
  
-// ---------- Then attempt to upgrade to live data ----------
+// ---------- Then attempt to upgrade to live, per-state data ----------
 loadLiveMandiData();
  
 // ---------- Toast ----------
@@ -182,4 +202,3 @@ document.getElementById('listing-form').addEventListener('submit', (e) => {
   box.classList.remove('hidden');
   e.target.reset();
 });
- 
