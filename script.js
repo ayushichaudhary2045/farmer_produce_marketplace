@@ -1,10 +1,9 @@
-// ============ SahiBhaav — live Agmarknet integration (per-listing state) ============
-// NOTE: This API key is from the free, public data.gov.in catalog (Agmarknet dataset).
-// For a production app, this call should go through your own backend so the key
-// isn't exposed in client-side code. Fine for a hackathon demo/prototype.
+// ============ SahiBhaav — live Agmarknet integration (via same-origin proxy) ============
+// The frontend never calls api.data.gov.in directly (browsers block that with a
+// CORS error). Instead it calls our own /api/mandi-price endpoint (a Vercel
+// serverless function), which fetches from Agmarknet server-side and returns
+// the JSON. See /api/mandi-price.js for that proxy.
  
-const AGMARKNET_API_KEY = "579b464db66ec23bdd000001d5f2cc335738412a6b00dec51";
-const AGMARKNET_RESOURCE_ID = "35985678-0d79-46b4-9ed6-6f13308a1d24";
 const AGMARKNET_TICKER_STATE = "Uttar Pradesh"; // default state shown in the hero ticker
  
 const icons = {
@@ -22,7 +21,7 @@ const fallbackTicker = [
   { crop:"Potato", icon:"potato", price:980, dir:"down" },
 ];
  
-// Each listing now carries its own real state name (must match Agmarknet's "State" field values)
+// Each listing carries its own real state name (must match Agmarknet's "State" field values)
 // so the live market price fetched matches where that produce actually is.
 const listings = [
   { crop:"Tomato", icon:"tomato", qty:"20 quintals", loc:"Baheri, UP", state:"Uttar Pradesh", asking:1700, market:1650 },
@@ -71,16 +70,12 @@ function renderListings(data){
   `).join('');
 }
  
-// ---------- Live Agmarknet fetch (commodity + state specific) ----------
+// ---------- Live Agmarknet fetch (via our own /api/mandi-price proxy) ----------
 async function fetchCommodityPrice(commodity, state){
-  const url = `https://api.data.gov.in/resource/${AGMARKNET_RESOURCE_ID}` +
-              `?api-key=${AGMARKNET_API_KEY}&format=json` +
-              `&filters[Commodity]=${encodeURIComponent(commodity)}` +
-              `&filters[State]=${encodeURIComponent(state)}` +
-              `&limit=50`;
+  const url = `/api/mandi-price?commodity=${encodeURIComponent(commodity)}&state=${encodeURIComponent(state)}&limit=50`;
  
   const res = await fetch(url);
-  if(!res.ok) throw new Error(`Agmarknet request failed for ${commodity}/${state}`);
+  if(!res.ok) throw new Error(`Proxy request failed for ${commodity}/${state}`);
   const data = await res.json();
   if(!data.records || data.records.length === 0) throw new Error(`No records for ${commodity}/${state}`);
  
@@ -129,8 +124,7 @@ async function loadLiveMandiData(){
   const anyTickerLive = tickerResults.some(r => r.status === 'fulfilled');
   renderTicker(liveTicker, anyTickerLive);
  
-  // ---- Listings: each fetched using its OWN state, so Nashik shows Maharashtra's
-  // price, Karnal shows Haryana's price, etc. — not a single blanket state. ----
+  // ---- Listings: each fetched using its OWN state ----
   const comboKeys = [...new Set(listings.map(l => `${l.crop}|${l.state}`))];
  
   const comboResults = await Promise.allSettled(
@@ -158,16 +152,12 @@ async function loadLiveMandiData(){
   renderListings(liveListings);
 }
  
-// ---------- AI predicted price (real trend from Agmarknet history) ----------
+// ---------- AI predicted price (real trend from Agmarknet history, via proxy) ----------
 const AI_PREDICTION_COMMODITY = "Tomato";
-const AI_PREDICTION_STATE = AGMARKNET_TICKER_STATE; // Uttar Pradesh, matches the card's label
+const AI_PREDICTION_STATE = AGMARKNET_TICKER_STATE;
  
 async function fetchPriceHistory(commodity, state){
-  const url = `https://api.data.gov.in/resource/${AGMARKNET_RESOURCE_ID}` +
-              `?api-key=${AGMARKNET_API_KEY}&format=json` +
-              `&filters[Commodity]=${encodeURIComponent(commodity)}` +
-              `&filters[State]=${encodeURIComponent(state)}` +
-              `&limit=100`;
+  const url = `/api/mandi-price?commodity=${encodeURIComponent(commodity)}&state=${encodeURIComponent(state)}&limit=100`;
  
   const res = await fetch(url);
   if(!res.ok) throw new Error('History fetch failed');
@@ -182,12 +172,10 @@ async function fetchPriceHistory(commodity, state){
   return points;
 }
  
-// Uses a simple average-daily-change trend over the most recent data points
-// (not a trained model — a transparent, explainable estimate).
 function predictNextWeek(points){
   if(points.length < 2) throw new Error('Not enough data points to trend');
  
-  const recent = points.slice(-15); // most recent up to 15 dated entries
+  const recent = points.slice(-15);
   const first = recent[0];
   const last = recent[recent.length - 1];
  
@@ -215,7 +203,6 @@ async function loadAiPrediction(){
  
   } catch(err){
     console.warn('AI prediction fetch failed, keeping static fallback numbers:', err);
-    // The hardcoded values already in the HTML act as the fallback — nothing else to do.
   }
 }
  
@@ -264,3 +251,7 @@ document.getElementById('listing-form').addEventListener('submit', (e) => {
   box.classList.remove('hidden');
   e.target.reset();
 });
+ 
+
+
+
