@@ -1,0 +1,13 @@
+﻿{
+  "name": "farmer_produce_marketplace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SahiBhaav — Digital Farmer Produce Marketplace",
+  "main": "api/mandi-price.js",
+  "scripts": {
+    "build": "echo 'Static build complete'"
+  },
+  "keywords": ["marketplace", "agmarknet", "agriculture", "sih2026"],
+  "author": "Team Dynamic",
+  "license": "MIT"
+}
