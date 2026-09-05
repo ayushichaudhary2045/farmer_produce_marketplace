@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SahiBhaav — Sell straight to the buyer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=Work+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="wrap">
+    <a href="#" class="brand">
+      <svg class="mark" viewBox="0 0 40 40" fill="none"><path d="M20 4C13 10 9 17 9 23a11 11 0 0022 0c0-6-4-13-11-19z" fill="#4c7a44"/><path d="M20 12v22" stroke="#e6a419" stroke-width="2" stroke-linecap="round"/></svg>
+      SahiBhaav
+    </a>
+    <div class="nav-links">
+      <a href="#how">How it works</a>
+      <a href="#buy">For buyers</a>
+      <a href="#sell">For farmers</a>
+      <a href="#about">About</a>
+    </div>
+    <a href="#sell" class="btn btn-primary">List your produce</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="wrap">
+    <div>
+      <div class="eyebrow-line">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#e6a419" stroke-width="2"/><path d="M12 7v5l3 2" stroke="#e6a419" stroke-width="2" stroke-linecap="round"/></svg>
+        Live mandi prices, straight from data.gov.in
+      </div>
+      <h1>Sell your harvest without losing a third of it to <em>middlemen</em>.</h1>
+      <p class="lede">SahiBhaav connects farmers with verified bulk buyers, shows real government mandi prices before you sell, and works over SMS and WhatsApp — even on a basic phone.</p>
+      <div class="hero-ctas">
+        <a href="#sell" class="btn btn-marigold">List your produce</a>
+        <a href="#buy" class="btn btn-outline-light">Browse today's produce</a>
+      </div>
+    </div>
+
+    <div class="ticker-card">
+      <div class="ticker-head">
+        <h3>Today's mandi rates</h3>
+        <span id="ticker-date">Loading…</span>
+      </div>
+      <div id="ticker-body"></div>
+      <div class="ticker-source">Source: Agmarknet, Directorate of Marketing &amp; Inspection, Govt of India</div>
+    </div>
+  </div>
+
+  <div class="hero-strip">
+    <div class="wrap">
+      <div class="stat"><b>10–20%</b> commission saved per sale</div>
+      <div class="stat"><b>Pan-India</b> verified buyer network</div>
+      <div class="stat"><b>Real-time</b> AI-predicted pricing</div>
+    </div>
+  </div>
+</header>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="tag">How it works</span>
+      <h2>Four steps from field to fair deal</h2>
+      <p>No app to install, no broker to negotiate with — just a listing, a price you can trust, and a buyer on the other end.</p>
+    </div>
+    <div class="steps">
+      <div class="step"><div class="num">01</div><h3>List your produce</h3><p>Add crop, quantity and your price — by form, or by a simple SMS if you're on a basic phone.</p></div>
+      <div class="step"><div class="num">02</div><h3>Compare the mandi price</h3><p>See today's live Agmarknet rate and an AI-predicted price for next week, side by side with your asking price.</p></div>
+      <div class="step"><div class="num">03</div><h3>Buyers bid</h3><p>Verified bulk buyers across India view your listing and place transparent bids.</p></div>
+      <div class="step"><div class="num">04</div><h3>Deal &amp; alert</h3><p>Accept a bid and get a WhatsApp or SMS alert the moment it happens — no missed offers.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- BUYER VIEW -->
+<section id="buy" class="section-alt">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="tag">For buyers</span>
+      <h2>Browse today's listings</h2>
+      <p>Every listing shows the farmer's asking price next to the live mandi rate, so you know it's fair before you bid.</p>
+    </div>
+    <div class="listing-grid" id="listing-grid"></div>
+  </div>
+</section>
+
+<!-- FARMER VIEW -->
+<section id="sell">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="tag">For farmers</span>
+      <h2>List your produce in under a minute</h2>
+      <p>Log in with just your phone number — no email, no password to remember.</p>
+    </div>
+
+    <div class="farmer-panel">
+      <div class="farmer-side">
+        <h3>Built for how you actually farm</h3>
+        <p>No smartphone required for updates — alerts also go out over SMS.</p>
+        <ul>
+          <li>OTP login with just your phone number</li>
+          <li>WhatsApp &amp; SMS bid alerts</li>
+          <li>See the live mandi price before you set yours</li>
+          <li>Deliver yourself for a higher margin, or use courier pickup</li>
+        </ul>
+      </div>
+      <div class="farmer-form">
+
+        <div id="otp-stage">
+          <div class="field">
+            <label for="phone">Phone number</label>
+            <input type="tel" id="phone" placeholder="98765 43210" maxlength="10">
+          </div>
+          <button class="btn btn-primary" id="send-otp">Send OTP</button>
+          <p class="hint hidden" id="otp-hint">Demo OTP sent: <strong>4821</strong></p>
+
+          <div class="field hidden" id="otp-field" style="margin-top:16px;">
+            <label for="otp">Enter OTP</label>
+            <div class="otp-row">
+              <input type="text" id="otp" maxlength="4" placeholder="4 digit code">
+              <button class="btn btn-marigold" id="verify-otp">Verify</button>
+            </div>
+          </div>
+        </div>
+
+        <form id="listing-form" class="hidden">
+          <div class="field">
+            <label for="crop">Crop</label>
+            <input type="text" id="crop" placeholder="e.g. Tomato" required>
+          </div>
+          <div class="field">
+            <label for="qty">Quantity (in quintals)</label>
+            <input type="number" id="qty" placeholder="e.g. 20" required>
+          </div>
+          <div class="field">
+            <label for="price">Your asking price (₹ per quintal)</label>
+            <input type="number" id="price" placeholder="e.g. 1800" required>
+          </div>
+          <div class="field">
+            <label for="location">Mandi / location</label>
+            <input type="text" id="location" placeholder="e.g. Baheri, Uttar Pradesh" required>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">List produce</button>
+        </form>
+
+        <div class="success-box hidden" id="listing-success"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- AI PRICE -->
+<section class="section-alt">
+  <div class="wrap">
+    <div class="ai-card">
+      <div>
+        <span class="tag" style="color:var(--marigold-deep); font-weight:600; display:block; margin-bottom:10px;">AI-predicted pricing</span>
+        <h2 style="margin:0 0 14px; font-size:1.8rem;">Know where the price is heading, not just where it stands today</h2>
+        <p style="color:var(--ink-soft); margin:0;">Our model looks at recent Agmarknet trends for your crop and mandi to estimate next week's price — so you're not guessing when to sell.</p>
+      </div>
+      <div>
+        <div class="ai-numbers">
+          <div class="ai-num">
+            <div class="label">Today's mandi price (Tomato)</div>
+            <div class="value">₹1,650</div>
+          </div>
+          <div class="ai-num predicted">
+            <div class="label">AI-predicted, next 7 days</div>
+            <div class="value">₹1,820</div>
+            <div class="delta">↑ 10.3% expected rise</div>
+          </div>
+        </div>
+        <p class="ai-method">Estimated from a 30-day moving trend on Agmarknet mandi data. Shown for guidance only — not a guaranteed price.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- IMPACT -->
+<section>
+  <div class="wrap">
+    <div class="section-head">
+      <span class="tag">Impact</span>
+      <h2>What direct selling actually changes</h2>
+    </div>
+    <div class="impact">
+      <div class="cell"><div class="big">10–20%</div><div class="cap">Commission saved per sale by cutting out middlemen</div></div>
+      <div class="cell"><div class="big">Pan-India</div><div class="cap">Reach from one local mandi to a verified nationwide buyer network</div></div>
+      <div class="cell"><div class="big">Real-time</div><div class="cap">Fair, AI-predicted pricing that reduces distress selling of perishables</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section id="about" class="section-alt">
+  <div class="wrap">
+    <div class="about-grid">
+      <div>
+        <span class="tag" style="color:var(--leaf-deep); font-weight:600; display:block; margin-bottom:10px;">Team Dynamic</span>
+        <h2 style="margin:0 0 14px; font-size:1.8rem;">Built for Smart India Hackathon 2026</h2>
+        <p style="color:var(--ink-soft);">PS #7 — Farmer Produce Marketplace, under Agriculture &amp; FoodTech.</p>
+        <div class="team-list">
+          <span class="team-pill">Anshika</span>
+          <span class="team-pill">Ayushi Chaudhary</span>
+          <span class="team-pill">Devansh Malik</span>
+          <span class="team-pill">Ishan Chaudhary</span>
+          <span class="team-pill">Manav Sharma</span>
+          <span class="team-pill">Yash Gupta</span>
+        </div>
+      </div>
+      <div>
+        <span class="tag" style="color:var(--leaf-deep); font-weight:600; display:block; margin-bottom:10px;">Built with</span>
+        <h2 style="margin:0 0 14px; font-size:1.8rem;">Tech stack</h2>
+        <div class="tech-list">
+          <div class="tech-item">React &amp; Tailwind CSS</div>
+          <div class="tech-item">Python FastAPI</div>
+          <div class="tech-item">PostgreSQL</div>
+          <div class="tech-item">Agmarknet API</div>
+          <div class="tech-item">Twilio (WhatsApp/SMS)</div>
+          <div class="tech-item">Scikit-learn</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>
+      <div class="foot-brand">SahiBhaav</div>
+      <small>A digital mandi connecting farmers directly with verified buyers.</small>
+      <small>Built by Team Dynamic — Smart India Hackathon 2026</small>
+    </div>
+    <div>
+      <small>Price data: Agmarknet, data.gov.in</small>
+      <small>Demo prototype — not a live transactional platform</small>
+    </div>
+  </div>
+</footer>
+
+<div class="toast" id="toast">
+  <svg viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4L19 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  <span id="toast-text"></span>
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
