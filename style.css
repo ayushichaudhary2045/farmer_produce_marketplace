@@ -40,6 +40,7 @@
   }
   .brand{ display:flex; align-items:center; gap:10px; font-family:'Zilla Slab',serif; font-weight:700; font-size:1.3rem; text-decoration:none; }
   .brand .mark{ width:34px; height:34px; }
+  .nav-links{ display:flex; align-items:center; gap:30px; }
   .nav-links a{ text-decoration:none; font-size:0.96rem; color:var(--ink-soft); transition:color 0.15s ease; }
   .nav-links a:hover{ color:var(--leaf-deep); }
   .nav-actions{ display:flex; align-items:center; gap:12px; }
