@@ -1,3 +1,25 @@
+const API_BASE_URL = "http://127.0.0.1:8000";
+
+async function testBackendConnection() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/listings`);
+
+        if (!response.ok) {
+            throw new Error(`HTTP error: ${response.status}`);
+        }
+
+        const listings = await response.json();
+
+        console.log("Backend connected successfully!");
+        console.log("Listings from database:", listings);
+
+    } catch (error) {
+        console.error("Backend connection failed:", error);
+    }
+}
+
+testBackendConnection();
+
 // ============ SahiBhaav — Modern Digital Mandi & Marketplace ============
 // Integrates live Agmarknet prices via serverless proxy /api/mandi-price
 // with in-memory caching, request deduplication, robust fallbacks,
@@ -80,7 +102,29 @@ function loadStoredListings(){
   }
   return JSON.parse(JSON.stringify(defaultListings));
 }
+async function loadBackendListings() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/listings`);
+    const data = await response.json();
 
+    console.log("Backend listings:", data);
+
+    return data.map(item => ({
+      id: item.id,
+      crop: item.commodity,
+      icon: item.commodity.toLowerCase(),
+      qty: `${item.quantity} quintals`,
+      loc: `${item.market}, ${item.state}`,
+      state: item.state,
+      asking: item.starting_price,
+      market: item.predicted_price,
+      bids: []
+    }));
+  } catch (error) {
+    console.error("Could not load backend listings:", error);
+    return [];
+  }
+}
 function saveListings(){
   try {
     localStorage.setItem('sahibhaav_listings', JSON.stringify(activeListings));
@@ -89,7 +133,12 @@ function saveListings(){
   }
 }
 
-let activeListings = loadStoredListings();
+let activeListings = [];
+
+loadBackendListings().then(listings => {
+  activeListings = listings;
+  updateMarketplaceView();
+});
 
 // Current marketplace filter state
 const currentFilter = {
@@ -481,7 +530,7 @@ function closeBidModal(){
 // Bid form submit handler
 const bidForm = document.getElementById('bid-form');
 if(bidForm){
-  bidForm.addEventListener('submit', (e) => {
+  bidForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const listingId = parseInt(document.getElementById('bid-listing-id').value, 10);
     const name = document.getElementById('bidder-name').value.trim();
@@ -509,8 +558,34 @@ if(bidForm){
       time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
     };
 
-    activeListings[listingIndex].bids.push(newBid);
-    saveListings();
+    try {
+  const response = await fetch(`${API_BASE_URL}/bids`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      listing_id: listingId,
+      bidder_name: name,
+      amount: amount
+    })
+  });
+
+  const result = await response.json();
+  console.log("Bid saved to backend:", result);
+
+  if (!response.ok) {
+    throw new Error("Failed to save bid");
+  }
+
+  activeListings[listingIndex].bids.push(newBid);
+  saveListings();
+
+} catch (error) {
+  console.error("Could not save bid to backend:", error);
+  showToast("Could not save bid to server.");
+  return;
+}
     renderListings(getFilteredListings());
     updateFarmerBidsList();
 
@@ -635,7 +710,7 @@ if(logoutFarmerBtn){
 // Farmer listing form submission
 const listingForm = document.getElementById('listing-form');
 if(listingForm){
-  listingForm.addEventListener('submit', (e) => {
+  listingForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const cropInput = document.getElementById('crop');
     const qtyInput = document.getElementById('qty');
@@ -671,9 +746,39 @@ if(listingForm){
       bids: []
     };
 
-    activeListings.unshift(newListing);
-    saveListings();
-    updateMarketplaceView();
+   try {
+  const response = await fetch(`${API_BASE_URL}/listings`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      commodity: newListing.crop,
+      state: newListing.state,
+      market: location,
+      quantity: Number(qty),
+      starting_price: Number(price),
+      predicted_price: Number(benchmark)
+    })
+  });
+
+  const result = await response.json();
+  console.log("Listing saved to backend:", result);
+
+  if (!response.ok) {
+    throw new Error("Failed to save listing");
+  }
+
+  newListing.id = result.id;
+
+  activeListings.unshift(newListing);
+  saveListings();
+  updateMarketplaceView();
+
+} catch (error) {
+  console.error("Could not save listing to backend:", error);
+  showToast("Could not save listing to server.");
+}
 
     const successBox = document.getElementById('listing-success');
     const successText = document.getElementById('listing-success-text');
@@ -843,8 +948,6 @@ updateFarmerAuthUI();
 // Upgrade with live data
 loadLiveMandiData();
 loadAiPrediction();
-
- 
 
 
 
