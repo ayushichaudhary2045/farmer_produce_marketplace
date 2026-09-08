@@ -1,1 +1,8 @@
 backend/.env
+.env
+.env.local
+node_modules/
+.vercel/
+__pycache__/
+*.pyc
+farmer_produce_marketplace/

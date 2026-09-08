@@ -4,10 +4,13 @@
   "private": true,
   "description": "SahiBhaav — Digital Farmer Produce Marketplace",
   "main": "api/mandi-price.js",
-  "scripts": {},
+  "scripts": {
+    "dev": "vercel dev",
+    "start": "npx serve ."
+  },
   "keywords": ["marketplace", "agmarknet", "agriculture", "sih2026"],
   "author": "Team Dynamic",
-  "license": "MIT"
+  "license": "MIT",
   "dependencies": {
     "twilio": "^5.10.3"
   }
