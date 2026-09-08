@@ -1,21 +1,33 @@
-const API_BASE_URL = "http://127.0.0.1:8000";
+// Dynamic backend API URL:
+// - Uses window.API_BASE_URL if explicitly configured
+// - Defaults to local FastAPI backend when running on localhost during local development
+// - Falls back to relative path or offline client-cache in production (Vercel)
+const isLocalhost = typeof window !== 'undefined' && (
+  window.location.hostname === 'localhost' ||
+  window.location.hostname === '127.0.0.1' ||
+  window.location.hostname === ''
+);
+const API_BASE_URL = (typeof window !== 'undefined' && window.API_BASE_URL)
+  ? window.API_BASE_URL
+  : (isLocalhost ? "http://127.0.0.1:8000" : "");
 
 async function testBackendConnection() {
-    try {
-        const response = await fetch(`${API_BASE_URL}/listings`);
+  if (!API_BASE_URL) return;
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2500);
+    const response = await fetch(`${API_BASE_URL}/listings`, { signal: controller.signal });
+    clearTimeout(timeoutId);
 
-        if (!response.ok) {
-            throw new Error(`HTTP error: ${response.status}`);
-        }
-
-        const listings = await response.json();
-
-        console.log("Backend connected successfully!");
-        console.log("Listings from database:", listings);
-
-    } catch (error) {
-        console.error("Backend connection failed:", error);
+    if (!response.ok) {
+      throw new Error(`HTTP error: ${response.status}`);
     }
+
+    const listings = await response.json();
+    console.log("Backend connected successfully! Listings from database:", listings);
+  } catch (error) {
+    console.info("FastAPI backend not active at", API_BASE_URL, "— running in client-cached mode with Agmarknet proxy.");
+  }
 }
 
 testBackendConnection();
@@ -103,12 +115,18 @@ function loadStoredListings(){
   return JSON.parse(JSON.stringify(defaultListings));
 }
 async function loadBackendListings() {
+  if (!API_BASE_URL) return null;
   try {
-    const response = await fetch(`${API_BASE_URL}/listings`);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+    const response = await fetch(`${API_BASE_URL}/listings`, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    if (!response.ok) return null;
     const data = await response.json();
+    if (!Array.isArray(data) || data.length === 0) return null;
 
-    console.log("Backend listings:", data);
-
+    console.log("Backend listings loaded:", data);
     return data.map(item => ({
       id: item.id,
       crop: item.commodity,
@@ -117,12 +135,12 @@ async function loadBackendListings() {
       loc: `${item.market}, ${item.state}`,
       state: item.state,
       asking: item.starting_price,
-      market: item.predicted_price,
+      market: item.predicted_price || item.starting_price,
       bids: []
     }));
   } catch (error) {
-    console.error("Could not load backend listings:", error);
-    return [];
+    console.info("Could not load backend listings, using local data.");
+    return null;
   }
 }
 function saveListings(){
@@ -133,11 +151,15 @@ function saveListings(){
   }
 }
 
-let activeListings = [];
+// Always populate activeListings immediately with stored or default listings so the UI never displays an empty screen
+let activeListings = loadStoredListings();
 
-loadBackendListings().then(listings => {
-  activeListings = listings;
-  updateMarketplaceView();
+// If backend is active and has records, update active listings
+loadBackendListings().then(backendListings => {
+  if (backendListings && backendListings.length > 0) {
+    activeListings = backendListings;
+    updateMarketplaceView();
+  }
 });
 
 // Current marketplace filter state
@@ -558,34 +580,31 @@ if(bidForm){
       time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
     };
 
-    try {
-  const response = await fetch(`${API_BASE_URL}/bids`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      listing_id: listingId,
-      bidder_name: name,
-      amount: amount
-    })
-  });
+    activeListings[listingIndex].bids.push(newBid);
+    saveListings();
 
-  const result = await response.json();
-  console.log("Bid saved to backend:", result);
+    if (API_BASE_URL) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/bids`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            listing_id: listingId,
+            bidder_name: name,
+            amount: amount
+          })
+        });
 
-  if (!response.ok) {
-    throw new Error("Failed to save bid");
-  }
-
-  activeListings[listingIndex].bids.push(newBid);
-  saveListings();
-
-} catch (error) {
-  console.error("Could not save bid to backend:", error);
-  showToast("Could not save bid to server.");
-  return;
-}
+        if (response.ok) {
+          const result = await response.json();
+          console.log("Bid saved to backend:", result);
+        }
+      } catch (error) {
+        console.info("Backend sync unavailable, saved bid locally.");
+      }
+    }
     renderListings(getFilteredListings());
     updateFarmerBidsList();
 
@@ -746,39 +765,39 @@ if(listingForm){
       bids: []
     };
 
-   try {
-  const response = await fetch(`${API_BASE_URL}/listings`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      commodity: newListing.crop,
-      state: newListing.state,
-      market: location,
-      quantity: Number(qty),
-      starting_price: Number(price),
-      predicted_price: Number(benchmark)
-    })
-  });
+    activeListings.unshift(newListing);
+    saveListings();
+    updateMarketplaceView();
 
-  const result = await response.json();
-  console.log("Listing saved to backend:", result);
+    if (API_BASE_URL) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/listings`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            commodity: newListing.crop,
+            state: newListing.state,
+            market: location,
+            quantity: Number(qty),
+            starting_price: Number(price),
+            predicted_price: Number(benchmark)
+          })
+        });
 
-  if (!response.ok) {
-    throw new Error("Failed to save listing");
-  }
-
-  newListing.id = result.id;
-
-  activeListings.unshift(newListing);
-  saveListings();
-  updateMarketplaceView();
-
-} catch (error) {
-  console.error("Could not save listing to backend:", error);
-  showToast("Could not save listing to server.");
-}
+        if (response.ok) {
+          const result = await response.json();
+          if (result && result.id) {
+            newListing.id = result.id;
+            saveListings();
+          }
+          console.log("Listing saved to backend:", result);
+        }
+      } catch (error) {
+        console.info("Backend sync unavailable, saved listing locally.");
+      }
+    }
 
     const successBox = document.getElementById('listing-success');
     const successText = document.getElementById('listing-success-text');
