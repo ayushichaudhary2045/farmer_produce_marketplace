@@ -20,13 +20,26 @@
 
 ```
 farmer_produce_marketplace/
+│
 ├── api/
-│   └── mandi-price.js      # Serverless proxy function (CORS bypass & Agmarknet integration)
-├── index.html              # Responsive, accessible single-page application
-├── script.js               # Client-side caching, live fetching, bidding, and filtering logic
-├── style.css               # Clean typography, responsive grid, dialogs, and animations
-├── vercel.json             # Vercel deployment configuration
-└── README.md               # Technical overview and documentation
+│   ├── mandi-price.js      → Mandi price API
+│   └── whatsapp.js         → WhatsApp API integration
+│
+├── backend/
+│   ├── __pycache__/        → Python cache files
+│   ├── database.py         → Database operations
+│   ├── main.py             → Main backend application
+│   └── requirements.txt    → Python dependencies
+│
+├── index.html              → Main frontend webpage
+├── style.css               → Frontend styling
+├── script.js               → Frontend JavaScript / API integration
+│
+├── package.json            → Node.js project configuration
+├── package-lock.json       → Locked Node.js dependencies
+├── vercel.json             → Vercel deployment configuration
+├── .gitignore              → Files excluded from Git
+└── README.md               → Project documentation
 ```
 
 ---
