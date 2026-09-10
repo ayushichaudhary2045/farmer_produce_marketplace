@@ -1,6 +1,5 @@
 # SahiBhaav — Digital Farmer Produce Marketplace
-
-**Smart India Hackathon 2026 — PS #7 (Agriculture & FoodTech)**  
+ 
 *Connecting Farmers Directly to Bulk Buyers with Real Mandi Rates and Transparent Bidding*
 
 ---
